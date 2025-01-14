@@ -3,6 +3,56 @@
 import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { neon } from "@neondatabase/serverless";
+import bcrypt from 'bcryptjs';
+
+const loginFormSchema = z.object({
+    id: z.string(),
+    username: z.string(),
+    password: z.string()
+})
+
+export type LoginState = {
+    username: string;
+    password: string;
+}
+
+const HandleLogin = loginFormSchema.omit({id: true});
+
+export async function handleLogin(prevState, formData: FormData) {
+    const validatedFields = HandleLogin.safeParse({
+        username: formData.get("username"),
+        password: formData.get("password")
+    })
+
+    if (!validatedFields.success) {
+        return { ...prevState, message: "Invalid input data", success: false, status: 400 };
+      }
+    
+    const {username, password} = validatedFields.data;
+
+    const sql = neon(process.env.POSTGRES_URL);
+
+    try {
+        const user = await fetchUserById(username);
+
+        if (!user) {
+            return {...prevState, message: "User not found", success: false, status: 404}
+        }
+        
+        const passwordMatches = await bcrypt.compare(password, user.password);
+
+        if (!passwordMatches) {
+            return { ...prevState, message: "Invalid password", success: false, status: 401 };
+        }
+        
+        // Return a success message after login
+        return { ...prevState, message: "Login successful", success: true, status: 200 };
+
+    } catch(error) {
+        console.error("Database error:", error);
+        throw new Error("Failed to login.")
+    }
+}
 
 const signupFormSchema = z.object({
     id: z.string(),
