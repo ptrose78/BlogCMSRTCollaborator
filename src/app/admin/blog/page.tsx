@@ -1,4 +1,5 @@
 import PostForm from "@/app/components/PostForm";
+import PostSection from "@/app/components/PostSection";
 
 export default function BlogAdminPage() {
     return (
@@ -7,6 +8,9 @@ export default function BlogAdminPage() {
                 <div className="col-span-5">
                     <h1 className="text-2xl font-bold mb-4">Create New Post</h1>
                     <PostForm />
+                </div>
+                <div className="col-span-2">
+                    <PostSection />
                 </div>
             </div>
         </div>
