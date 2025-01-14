@@ -7,6 +7,9 @@ export default async function Signup() {
         action={handleSignup}
         className="w-full max-w-sm p-6 bg-white rounded shadow-md"
       >
+        <h1 className="text-2xl font-semibold text-center text-gray-700 mb-6">
+          Create Account
+        </h1>
         <label htmlFor="username" className="block text-sm font-medium text-gray-700 mt-2">
           Username
         </label>
