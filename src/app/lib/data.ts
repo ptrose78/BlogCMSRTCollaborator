@@ -34,3 +34,26 @@ export async function fetchPosts() {
       throw new Error("Failed to retrieve the post.");
     }
   }
+
+  export async function createPost(post){
+    try {
+      if (!post.title) {
+        throw new Error("Post title and content are required.");
+      }
+  
+      const sql = neon(process.env.POSTGRES_URL);
+      const [result] = await sql`
+        INSERT INTO posts (title, content, featured, excerpt)
+        VALUES (${post.title}, ${post.content}, ${post.featured}, ${post.excerpt})
+        RETURNING id`
+  
+        revalidatePath("/admin/blog")
+        return {
+          success: true,
+          message: "Post submitted successfully."
+        }
+    } catch(error) {
+      console.error("Database Error:", error);
+      throw new Error("Failed to add the post.");
+    }
+  } 
