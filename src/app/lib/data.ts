@@ -18,3 +18,19 @@ export async function fetchPosts() {
       throw new Error("Failed to retrieve posts.");
     }
   }
+
+  export async function fetchPostById(id: number) {
+    try {
+  
+      const sql = neon(process.env.POSTGRES_URL);
+  
+      const post = await sql`
+      SELECT * FROM posts WHERE id = ${id} LIMIT 1`;
+  
+      return post[0] || null;
+  
+    } catch(error){
+      console.error("Database Error:", error);
+      throw new Error("Failed to retrieve the post.");
+    }
+  }
