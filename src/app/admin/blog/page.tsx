@@ -2,6 +2,8 @@ import PostForm from "@/app/components/PostForm";
 import PostSection from "@/app/components/PostSection";
 
 export default function BlogAdminPage() {
+    console.log("hi"); // Should not throw any errors if it's properly installed
+
     return (
         <div className="mx-auto p-6 bg-white shadow-md rounded-lg">
             <div className="grid grid-cols-7 gap-1">
