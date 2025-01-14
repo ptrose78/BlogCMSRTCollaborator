@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import { useState } from 'react';
 import {
@@ -53,8 +53,8 @@ export default function PostForm({ initialPost }: { initialPost?: Post }) {
     };
 
     const toggleBlockType = (blockType: string) => {
-        setEditorState(RichUtils.toggleBlockType(editorState, blockType));
-    };
+        setEditorState( RichUtils.toggleBlockType(editorState, blockType)); 
+    } 
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -165,26 +165,25 @@ export default function PostForm({ initialPost }: { initialPost?: Post }) {
             {status && (
                 <div>
                     <p className="mt-4 text-sm text-gray-600">{status}</p>
-                    
                 </div>
             )}
             {(status && post.id) && (
                 <Link href="/admin/blog" className="mt-4 text-sm text-gray-500 hover:text-gray-700 flex items-center">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-4 h-4 mr-1"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3 10.5l7.5-7.5m0 0L18 10.5m-7.5-7.5V21"
-                    />
-                </svg>
-                Return to Main Page
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-4 h-4 mr-1"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M3 10.5l7.5-7.5m0 0L18 10.5m-7.5-7.5V21"
+                        />
+                    </svg>
+                    Return to Main Page
                 </Link>
             )}
         </div>
