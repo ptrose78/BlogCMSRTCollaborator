@@ -1,6 +1,7 @@
 'use client';
 
-
+import { deletePost } from "@/app/lib/data";
+import { updatePost } from "@/app/lib/data";
 import Link from 'next/link';
 import { useState } from 'react';
 

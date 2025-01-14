@@ -3,6 +3,7 @@
 
 import { sql } from '@vercel/postgres';
 import { neon } from "@neondatabase/serverless";
+import { revalidatePath } from 'next/cache';
 
 export async function fetchPosts() {
     try {
