@@ -40,6 +40,16 @@ export default async function Signup() {
         >
           Submit
         </button>
+
+        <p className="mt-4 text-sm text-gray-600 text-center">
+          Already have an account?{" "}
+          <a
+            href="/admin/auth/login"
+            className="text-blue-500 hover:underline hover:text-blue-600"
+          >
+            Login here
+          </a>
+        </p>
       </form>
     </div>
   );
