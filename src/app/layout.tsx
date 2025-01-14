@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Head from 'next/head';
+import Link from "next/link";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,11 +26,71 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+          <Head>
+            <title>Art Business</title>
+            <meta name="description" content={metadata.description} />
+          </Head>
+
+          <header className="bg-white shadow-md py-4">
+            <div className="container mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8">
+              <div className="logo">
+                
+              </div>
+              <div className="nav-container ml-2 justify-between items-center">
+                
+                <nav>
+                  <ul className="flex space-x-2 text-sm sm:space-x-6 sm:text-base">
+                      <li>
+                        <Link href="/" className="text-gray-700 hover:text-gray-900">
+                          Home
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/about" className="text-gray-700 hover:text-gray-900">
+                          About
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/arts" className="text-gray-700 hover:text-gray-900">
+                          Products
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/blog" className="text-gray-700 hover:text-gray-900">
+                          Blogs
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/contact" className="text-gray-700 hover:text-gray-900">
+                          Contact
+                        </Link>
+                      </li>
+                    </ul>
+                </nav>
+              </div>
+            </div>
+          </header>
+
+          <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </main>
+
+          <footer className="bg-gray-900 text-white py-8 px-4 sm:px-6 lg:px-8">
+            <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center">
+              <div className="text-center sm:text-left">
+                <p>&copy; 2024 Business</p>
+                <p>123 Business St, City, Country</p>
+                <p>contact@business.com</p>
+              </div>
+              <div className="mt-4 sm:mt-0 space-x-6">
+                <a href="#" className="hover:text-teal-500">Instagram</a>
+                <a href="#" className="hover:text-teal-500">Facebook</a>
+                <a href="#" className="hover:text-teal-500">Pinterest</a>
+              </div>
+            </div>
+          </footer>
+        </body>
+      </html>
   );
 }

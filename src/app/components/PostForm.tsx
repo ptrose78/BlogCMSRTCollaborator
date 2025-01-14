@@ -8,7 +8,7 @@ import {
     RichUtils,
     convertFromRaw,
 } from 'draft-js';
-import { createPost } from "@/app/lib/data";
+import { createPost, updatePost } from "@/app/lib/data";
 import "draft-js/dist/Draft.css"; // Import Draft.js styles
 import dynamic from 'next/dynamic';
 import Link from 'next/link'
@@ -68,7 +68,7 @@ export default function PostForm({ initialPost }: { initialPost?: Post }) {
             const updatedPost = { ...post, content: rawContent };
 
             if (post.id) {
-                
+                postResponse = await updatePost(post.id, updatedPost);
             } else {
                 postResponse = await createPost(updatedPost);
                 setPost({ id: '', title: '', content: '', featured: false });
