@@ -1,10 +1,26 @@
-import { handleSignup } from "@/app/lib/actions";
+'use client';
 
-export default async function Signup() {
+import { handleSignup } from "@/app/lib/actions";
+import { useActionState } from "react";
+import { useRouter } from "next/navigation"; 
+import { useEffect } from "react";
+
+export default function Signup() {
+  const initialState = { message: null, success: null }; // Define initial state
+  const [signup, formAction] = useActionState(handleSignup, initialState);
+  
+  const router = useRouter();
+
+  useEffect(() => {
+      if (signup?.success) {
+        router.push("/admin/blog");
+      }
+    }, [signup?.success, router]);
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <form
-        action={handleSignup}
+        action={formAction}
         className="w-full max-w-sm p-6 bg-white rounded shadow-md"
       >
         <h1 className="text-2xl font-semibold text-center text-gray-700 mb-6">
@@ -40,6 +56,16 @@ export default async function Signup() {
         >
           Submit
         </button>
+
+        {signup.message && (
+          <p
+            className={`mt-4 text-sm ${
+              signup.success ? "text-teal-500" : "text-red-500"
+            }`}
+          >
+            {signup.message}
+          </p>
+        )}
 
         <p className="mt-4 text-sm text-gray-600 text-center">
           Already have an account?{" "}

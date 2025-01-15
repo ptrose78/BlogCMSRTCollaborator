@@ -14,9 +14,18 @@ export default function Login() {
 
   useEffect(() => {
     if (login?.success) {
-      router.push("/admin/blog");
+        
+        // Set the cookies after successful login
+        document.cookie = `authToken=${login.tokens.accessToken}; Path=/; HttpOnly`;
+        document.cookie = `refreshToken=${login.tokens.refreshToken}; Path=/; HttpOnly`;
+        console.log(' login.tokens.accessToken:', login.tokens.accessToken)
+        console.log(' login.tokens.refreshToken:', login.tokens.refreshToken)
+        console.log('document.cookie:', document.cookie)
+        router.push("/admin/blog");
+        // Delay navigation to avoid triggering setState during render
+        // Delay navigation by 0 milliseconds
     }
-  }, [login?.success, router]);
+}, [login?.success, router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

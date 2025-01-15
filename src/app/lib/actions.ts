@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { neon } from "@neondatabase/serverless";
 import bcrypt from 'bcryptjs';
+import jwt from "jsonwebtoken";
 
 const loginFormSchema = z.object({
     id: z.string(),
@@ -17,40 +18,52 @@ export type LoginState = {
 }
 
 const HandleLogin = loginFormSchema.omit({id: true});
+const SECRET_KEY = process.env.JWT_SECRET;
+const REFRESH_SECRET_KEY = process.env.JWT_REFRESH_SECRET;
 
 export async function handleLogin(prevState, formData: FormData) {
     const validatedFields = HandleLogin.safeParse({
         username: formData.get("username"),
-        password: formData.get("password")
-    })
+        password: formData.get("password"),
+    });
 
     if (!validatedFields.success) {
         return { ...prevState, message: "Invalid input data", success: false, status: 400 };
-      }
-    
-    const {username, password} = validatedFields.data;
+    }
 
+    const { username, password } = validatedFields.data;
     const sql = neon(process.env.POSTGRES_URL);
 
     try {
         const user = await fetchUserById(username);
 
         if (!user) {
-            return {...prevState, message: "User not found", success: false, status: 404}
+            return { ...prevState, message: "User not found", success: false, status: 404 };
         }
-        
+
         const passwordMatches = await bcrypt.compare(password, user.password);
 
         if (!passwordMatches) {
             return { ...prevState, message: "Invalid password", success: false, status: 401 };
         }
-        
-        // Return a success message after login
-        return { ...prevState, message: "Login successful", success: true, status: 200 };
 
-    } catch(error) {
+        // Generate Access Token (short-lived)
+        const accessToken = jwt.sign({ userId: user.id }, SECRET_KEY, { expiresIn: '15m' });
+        console.log("access Token:",accessToken)
+
+        // Generate Refresh Token (long-lived)
+        const refreshToken = jwt.sign({ userId: user.id }, REFRESH_SECRET_KEY, { expiresIn: '7d' });
+        console.log("refresh Token:",refreshToken)
+
+        // Return success message and token info
+        return {
+            success: true,
+            message: "Login successful",
+            tokens: { accessToken, refreshToken },
+        };
+    } catch (error) {
         console.error("Database error:", error);
-        throw new Error("Failed to login.")
+        throw new Error("Failed to login.");
     }
 }
 
@@ -70,15 +83,15 @@ async function fetchUserById(username:string) {
     return result.length > 0 ? result[0] : null;
 }
 
-export async function handleSignup(formData: FormData) {
+export async function handleSignup(prevState, formData: FormData) {
     const validatedFields = HandleSignup.safeParse({
         username: formData.get("username"),
         password: formData.get("password")
     })
 
     if (!validatedFields.success) {
-        return {message: "Invalid input data.", status: 400}
-    }
+        return { ...prevState, message: "Invalid input data", success: false, status: 400 };
+      }
     
     const {username, password} = validatedFields.data;
     console.log(password)
@@ -88,7 +101,7 @@ export async function handleSignup(formData: FormData) {
     const user = await fetchUserById(username);
 
     if (user) {
-        return {message:"User already exists!", status: 400}
+        return {message:"User already exists!", success: false, status: 400}
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -100,10 +113,10 @@ export async function handleSignup(formData: FormData) {
         returning id
         `
 
-        return { message: "User created!", status: 200 };
+        return { message: "User created!", success: true, status: 200 };
         
     } catch(error) {
         console.error("Database error:", error);
-        return { message: "Failed to signup.", status: 500 };
+        return { message: "Failed to signup.", success: false, status: 500 };
     }
 }

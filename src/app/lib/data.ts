@@ -20,7 +20,7 @@ export async function fetchPosts() {
     }
   }
 
-  export async function fetchPostById(id: number) {
+export async function fetchPostById(id: number) {
     try {
   
       const sql = neon(process.env.POSTGRES_URL);
@@ -36,7 +36,7 @@ export async function fetchPosts() {
     }
   }
 
-  export async function createPost(post){
+export async function createPost(post){
   try {
     if (!post.title) {
       throw new Error("Post title and content are required.");
@@ -129,6 +129,7 @@ export async function deletePost(post) {
     const result = await sql`
     DELETE FROM posts WHERE id = ${post.id}
     `
+
     if (result.rowCount === 0) {
       return {
         success: false,
@@ -140,7 +141,8 @@ export async function deletePost(post) {
 
     return {
       success: true,
-      message: "Post successfully deleted."
+      message: "Post successfully deleted.",
+      result: result
     }
 
   } catch(error) {
