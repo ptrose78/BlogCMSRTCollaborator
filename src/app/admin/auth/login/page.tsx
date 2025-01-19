@@ -15,7 +15,7 @@ export default function Login() {
 
       try {
         console.log('api login client side')
-          const response = await fetch('/api/site/login', {
+          const response = await fetch('/api/login', {
               method: 'POST',
               body: formData,
           });
