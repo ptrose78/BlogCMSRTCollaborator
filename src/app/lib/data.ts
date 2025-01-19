@@ -10,8 +10,6 @@ export async function fetchPosts() {
       const sql = neon(process.env.POSTGRES_URL);
       const posts = await sql`
         SELECT * FROM posts`
-  
-        console.log(posts)
         
        return posts
     } catch(error) {
@@ -102,16 +100,13 @@ export async function updatePost(id: number, post: { title?: string; content?: s
           WHERE id = $${values.length + 1}
       `;
 
-      // Debugging log
-      console.log("Executing query:", query);
-      console.log("With values:", values);
 
       values.push(id); // Add the id to the values array
 
       const result = await sql(query, values);
 
       if (result.rowCount === 0) {
-          return { success: false, message: "Post not found." }; // No rows updated, post probably doesn't exist
+          return { success: false, message: "Post not found." }; // No rows updated, post doesn't exist
       }
 
       revalidatePath("/admin/blog")
@@ -148,5 +143,27 @@ export async function deletePost(post) {
   } catch(error) {
     console.error("Database error:", error);
     throw new Error("Failed to delete post.")
+  }
+}
+
+export async function fetchUserById(username:string) {
+   
+  try {
+      if (!process.env.POSTGRES_URL) {
+          const errorMessage = "Missing environmental variable."
+          console.error(errorMessage)
+          throw new Error(errorMessage);
+      }
+
+      const sql = neon(process.env.POSTGRES_URL);
+      const result = await sql`
+      SELECT * FROM users WHERE username = ${username}
+      `;
+      console.log('result:', result[0])
+      return result.length > 0 ? result[0] : null;
+  
+  } catch(error) {
+      console.error("Database error:", error);
+      return { message: "Failed to fetch user.", status: 500 };
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
-// The secret key used to sign the JWT (you should store it securely)
+// The secret key used to sign the JWT 
 const SECRET_KEY = process.env.JWT_SECRET;
 
 export async function GET(req: Request) {
@@ -24,7 +24,6 @@ export async function GET(req: Request) {
         const decoded = jwt.verify(token, SECRET_KEY);
 
         // If token is valid, continue with the protected logic
-        // For example, you can return some protected data from the server
         return NextResponse.json({ message: 'Protected data', user: decoded }, { status: 200 });
     } catch (error) {
         // If token is invalid or expired
