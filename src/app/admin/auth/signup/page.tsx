@@ -14,7 +14,7 @@ export default function Signup() {
         const formData = new FormData(event.currentTarget);
 
         try {
-            const response = await fetch('/api/site/signup', {
+            const response = await fetch('/api/signup', {
                 method: 'POST',
                 body: formData,
             });
@@ -23,7 +23,7 @@ export default function Signup() {
 
             if (response.ok) {
                 // Signup successful, redirect
-                router.push('/admin/gallery');
+                router.push('/admin/blog');
             } else {
                 // Signup failed, display error message and errors
                 setMessage(data.message || 'Signup failed.');
