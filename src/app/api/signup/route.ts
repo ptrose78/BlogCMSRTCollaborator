@@ -1,18 +1,22 @@
-// app/api/signup/route.ts
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { neon } from "@neondatabase/serverless";
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { fetchUserById } from '@/app/lib/data';
-import jwt from "jsonwebtoken";
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const signupFormSchema = z.object({
-    username: z.string().email(), // Validate as email
-    password: z.string().min(6, "Password must be at least 6 characters"), // Validate length
+    username: z.string().email(),
+    password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const SECRET_KEY = process.env.JWT_SECRET;
-const REFRESH_SECRET_KEY = process.env.JWT_REFRESH_SECRET;
+const SECRET_KEY = process.env.JWT_SECRET!;
+const REFRESH_SECRET_KEY = process.env.JWT_REFRESH_SECRET!;
 
 export async function POST(req: Request) {
     try {
@@ -30,40 +34,40 @@ export async function POST(req: Request) {
 
         const { username, password } = validatedFields.data;
 
-        if (!process.env.POSTGRES_URL) {
-            console.error("Missing POSTGRES_URL environment variable.");
-            return NextResponse.json({ message: "Server error", success: false }, { status: 500 });
-        }
-
-        const sql = neon(process.env.POSTGRES_URL);
-
+        // Check if user already exists
         const existingUser = await fetchUserById(username);
-        console.log(existingUser)
-
-        if (!existingUser) {
-            return NextResponse.json({ message: "Not authorized!", success: false }, { status: 400 });
+        if (existingUser && existingUser.id) {
+            return NextResponse.json({ message: "User already exists!", success: false }, { status: 400 });
         }
 
+        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
+        console.log('hashedPassword', hashedPassword);
 
-        const result = await sql`
-            UPDATE users
-            SET password = ${hashedPassword}
-            WHERE username = ${username}
-            RETURNING id
-        `;
+        // Insert new user into Supabase
+        const { data: newUser, error: insertError } = await supabase
+            .from('users')
+            .insert([{ email: username, password: hashedPassword }])
+            .select('id')
+            .single();
 
-        const userId = result[0].id;
-        const accessToken = jwt.sign({ userId: userId }, SECRET_KEY!, { expiresIn: '15m' });
-        const refreshToken = jwt.sign({ userId: userId }, REFRESH_SECRET_KEY!, { expiresIn: '7d' });
 
-        const response = NextResponse.json({ 
-            message: "Login Successful!", 
+        if (insertError) {
+            throw new Error("Failed to create user.");
+        }
+
+        // Generate JWT tokens
+        const accessToken = jwt.sign({ userId: newUser.id }, SECRET_KEY, { expiresIn: '15m' });
+        const refreshToken = jwt.sign({ userId: newUser.id }, REFRESH_SECRET_KEY, { expiresIn: '7d' });
+
+        const response = NextResponse.json({
+            message: "Signup Successful!",
             success: true,
             accessToken,
             refreshToken
-         });
+        });
 
+        // Set authentication cookies
         response.cookies.set("authToken", accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",

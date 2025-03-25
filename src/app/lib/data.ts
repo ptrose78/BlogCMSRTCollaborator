@@ -1,169 +1,87 @@
-// app/actions.ts
-"use server"; 
+"use server";
 
-import { sql } from '@vercel/postgres';
-import { neon } from "@neondatabase/serverless";
+import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Missing Supabase environment variables");
+}
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export async function fetchPosts() {
     try {
-      const sql = neon(process.env.POSTGRES_URL);
-      const posts = await sql`
-        SELECT * FROM posts`
-        
-       return posts
-    } catch(error) {
-      console.error("Database error:", error);
-      throw new Error("Failed to retrieve posts.");
+        const { data, error } = await supabase.from('posts').select('*');
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error("Failed to retrieve posts.");
     }
-  }
-
-export async function fetchPostById(id: number) {
-    try {
-  
-      const sql = neon(process.env.POSTGRES_URL);
-  
-      const post = await sql`
-      SELECT * FROM posts WHERE id = ${id} LIMIT 1`;
-  
-      return post[0] || null;
-  
-    } catch(error){
-      console.error("Database Error:", error);
-      throw new Error("Failed to retrieve the post.");
-    }
-  }
-
-export async function createPost(post){
-  try {
-    if (!post.title) {
-      throw new Error("Post title and content are required.");
-    }
-
-    const sql = neon(process.env.POSTGRES_URL);
-    const [result] = await sql`
-      INSERT INTO posts (title, content, featured, excerpt)
-      VALUES (${post.title}, ${post.content}, ${post.featured}, ${post.excerpt})
-      RETURNING id`
-
-      revalidatePath("/admin/blog")
-      return {
-        success: true,
-        message: "Post submitted successfully."
-      }
-  } catch(error) {
-    console.error("Database Error:", error);
-    throw new Error("Failed to add the post.");
-  }
 }
 
-export async function updatePost(id: number, post: { title?: string; content?: string; featured?: boolean; excerpt?: string; archived?: boolean }) {
-  try {
-      const sql = neon(process.env.POSTGRES_URL);
+export async function fetchPostById(id) {
+    try {
+        const { data, error } = await supabase.from('posts').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error("Failed to retrieve the post.");
+    }
+}
 
-      // Construct the update query dynamically to only update provided fields
-      const updates: string[] = [];
-      const values: any[] = [];
+export async function createPost(post) {
+    try {
+        if (!post.title) {
+            throw new Error("Post title and content are required.");
+        }
 
-      if (post.title !== undefined) {
-          updates.push('title = $1');
-          values.push(post.title);
-      }
+        const { error } = await supabase.from('posts').insert([post]);
+        if (error) throw error;
 
-      if (post.content !== undefined) {
-          updates.push('content = $2');
-          values.push(post.content);
-      }
+        revalidatePath("/admin/blog");
+        return { success: true, message: "Post submitted successfully." };
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error("Failed to add the post.");
+    }
+}
 
-      if (post.featured !== undefined) {
-        updates.push('featured = $3');
-        values.push(post.featured);
-      }
+export async function updatePost(id, post) {
+    try {
+        const { error } = await supabase.from('posts').update(post).eq('id', id);
+        if (error) throw error;
 
-      if (post.excerpt !== undefined) {
-        updates.push('excerpt = $4');
-        values.push(post.excerpt);
-      }
-
-      if (post.archived !== undefined) {
-        updates.push('archived = $5');
-        values.push(post.archived);
-      }
-
-      if (updates.length === 0) {
-          return { success: true, message: "No fields to update." }; // Nothing to update
-      }
-
-      const query = `
-          UPDATE posts
-          SET ${updates.join(', ')}
-          WHERE id = $${values.length + 1}
-      `;
-
-
-      values.push(id); // Add the id to the values array
-
-      const result = await sql(query, values);
-
-      if (result.rowCount === 0) {
-          return { success: false, message: "Post not found." }; // No rows updated, post doesn't exist
-      }
-
-      revalidatePath("/admin/blog")
-      return { success: true, message: "Post updated successfully." };
-  } catch (error) {
-      console.error("Database error:", error);
-      return { success: false, message: "Failed to update post." };
-  }
+        revalidatePath("/admin/blog");
+        return { success: true, message: "Post updated successfully." };
+    } catch (error) {
+        console.error("Database error:", error);
+        return { success: false, message: "Failed to update post." };
+    }
 }
 
 export async function deletePost(post) {
-  try {
-    const sql = neon(process.env.POSTGRES_URL);
+    try {
+        const { error } = await supabase.from('posts').delete().eq('id', post.id);
+        if (error) throw error;
 
-    const result = await sql`
-    DELETE FROM posts WHERE id = ${post.id}
-    `
-
-    if (result.rowCount === 0) {
-      return {
-        success: false,
-        message: "Post not found or already deleted.",
-      };
+        revalidatePath("/admin/blog");
+        return { success: true, message: "Post successfully deleted." };
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error("Failed to delete post.");
     }
-
-    revalidatePath("/admin/blog");
-
-    return {
-      success: true,
-      message: "Post successfully deleted.",
-      result: result
-    }
-
-  } catch(error) {
-    console.error("Database error:", error);
-    throw new Error("Failed to delete post.")
-  }
 }
 
-export async function fetchUserById(username:string) {
-   
-  try {
-      if (!process.env.POSTGRES_URL) {
-          const errorMessage = "Missing environmental variable."
-          console.error(errorMessage)
-          throw new Error(errorMessage);
-      }
-
-      const sql = neon(process.env.POSTGRES_URL);
-      const result = await sql`
-      SELECT * FROM users WHERE username = ${username}
-      `;
-      console.log('result:', result[0])
-      return result.length > 0 ? result[0] : null;
-  
-  } catch(error) {
-      console.error("Database error:", error);
-      return { message: "Failed to fetch user.", status: 500 };
-  }
+export async function fetchUserById(username) {
+    try {
+        const { data, error } = await supabase.from('users').select('*').eq('username', username).single();
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Database error:", error);
+        return { message: "User does not exist.", status: 500 };
+    }
 }
