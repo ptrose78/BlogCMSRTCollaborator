@@ -18,12 +18,14 @@ export default function Signup() {
                 method: 'POST',
                 body: formData,
             });
-
+            console.log('response.ok', response.ok)
             const data = await response.json();
+            
 
             if (response.ok) {
                 // Signup successful, redirect
                 router.push('/admin/blog');
+                console.log('blog page redirect')
             } else {
                 // Signup failed, display error message and errors
                 setMessage(data.message || 'Signup failed.');

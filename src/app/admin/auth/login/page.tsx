@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PasswordManagerIndicator from '@/app/components/PasswordManagerIndicator'
+import { supabase } from '@/app/lib/supabaseClient';
 
 export default function Login() {
   const [message, setMessage] = useState<string | null>(null);
@@ -35,6 +36,10 @@ export default function Login() {
           } else {
               // Handle successful login
               const data = await response.json();
+              await supabase.auth.setSession({
+                access_token: data.accessToken,
+                refresh_token: data.refreshToken,
+              });
               setMessage(data.message); // Set the success message
               if(data.success) {
                 router.push("/admin/blog"); // Redirect only after successful login

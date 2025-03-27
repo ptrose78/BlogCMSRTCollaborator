@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { fetchUserById } from '@/app/lib/data';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
 );
 
 const signupFormSchema = z.object({
@@ -15,13 +12,11 @@ const signupFormSchema = z.object({
     password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const SECRET_KEY = process.env.JWT_SECRET!;
-const REFRESH_SECRET_KEY = process.env.JWT_REFRESH_SECRET!;
-
 export async function POST(req: Request) {
     try {
         const formData = await req.formData();
 
+        // Validate the form fields using Zod schema
         const validatedFields = signupFormSchema.safeParse({
             username: formData.get("username"),
             password: formData.get("password"),
@@ -33,47 +28,40 @@ export async function POST(req: Request) {
         }
 
         const { username, password } = validatedFields.data;
+        console.log('username', username)
+        console.log('password', password)
 
-        // Check if user already exists
-        const existingUser = await fetchUserById(username);
-        if (existingUser && existingUser.id) {
-            return NextResponse.json({ message: "User already exists!", success: false }, { status: 400 });
-        }
+        // Sign up the user with Supabase Auth
+        const { data: { user }, error: signupError } = await supabase.auth.signUp({
+            email: username, // Use email as the username
+            password: password
+        });
 
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
-        console.log('hashedPassword', hashedPassword);
+        console.log('user', user)
+        console.log('signupError', signupError)
 
-        // Insert new user into Supabase
-        const { data: newUser, error: insertError } = await supabase
-            .from('users')
-            .insert([{ email: username, password: hashedPassword }])
-            .select('id')
-            .single();
-
-
-        if (insertError) {
+        if (signupError) {
             throw new Error("Failed to create user.");
         }
 
-        // Generate JWT tokens
-        const accessToken = jwt.sign({ userId: newUser.id }, SECRET_KEY, { expiresIn: '15m' });
-        const refreshToken = jwt.sign({ userId: newUser.id }, REFRESH_SECRET_KEY, { expiresIn: '7d' });
+        // Generate JWT Tokens (if necessary)
+        const accessToken = user?.access_token; // Access token returned by Supabase
+        const refreshToken = user?.refresh_token; // Refresh token returned by Supabase
 
         const response = NextResponse.json({
             message: "Signup Successful!",
             success: true,
             accessToken,
-            refreshToken
+            refreshToken,
         });
 
-        // Set authentication cookies
+        // Set authentication cookies (use tokens from Supabase)
         response.cookies.set("authToken", accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: 'strict',
             path: "/",
-            maxAge: 15 * 60,
+            maxAge: 15 * 60, // 15 minutes
         });
 
         response.cookies.set("refreshToken", refreshToken, {
@@ -81,8 +69,11 @@ export async function POST(req: Request) {
             secure: process.env.NODE_ENV === "production",
             sameSite: 'strict',
             path: "/",
-            maxAge: 7 * 24 * 60 * 60,
+            maxAge: 7 * 24 * 60 * 60, // 7 days
         });
+
+        console.log('response', response)
+        console.log('response.ok', response.ok)
 
         return response;
 

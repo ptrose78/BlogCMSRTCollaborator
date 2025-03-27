@@ -1,17 +1,14 @@
-'use client'
-
 import { useState } from 'react';
 import {
     EditorState,
-    ContentState,
     convertToRaw,
     RichUtils,
     convertFromRaw,
 } from 'draft-js';
-import { createPost, updatePost } from "@/app/lib/data";
-import "draft-js/dist/Draft.css"; // Import Draft.js styles
 import dynamic from 'next/dynamic';
-import Link from 'next/link'
+import Link from 'next/link';
+
+import "draft-js/dist/Draft.css"; // Import Draft.js styles
 
 // Dynamically load the Editor component
 const Editor = dynamic(() => import('draft-js').then((mod) => mod.Editor), {
@@ -53,33 +50,50 @@ export default function PostForm({ initialPost }: { initialPost?: Post }) {
     };
 
     const toggleBlockType = (blockType: string) => {
-        setEditorState( RichUtils.toggleBlockType(editorState, blockType)); 
-    } 
+        setEditorState(RichUtils.toggleBlockType(editorState, blockType));
+    };
+
+    // Function to make API call to create or update a post with token in header
+    const makeApiRequest = async (url: string, method: 'POST' | 'PUT', body: Post) => {
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body),
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error with API request:', error);
+            return { success: false, message: 'Something went wrong, please try again.' };
+        }
+    };
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setStatus("Submitting...");
-        let postResponse;
 
         const contentState = editorState.getCurrentContent();
         const rawContent = JSON.stringify(convertToRaw(contentState));
 
-        try {
-            const updatedPost = { ...post, content: rawContent };
+        const updatedPost = { ...post, content: rawContent };
 
-            if (post.id) {
-                postResponse = await updatePost(post.id, updatedPost);
-            } else {
-                postResponse = await createPost(updatedPost);
-                setPost({ id: '', title: '', content: '', featured: false });
-                setEditorState(EditorState.createEmpty());
-            }
+        let postResponse;
 
-            if (postResponse.success) {
-                setStatus(postResponse.message);
-            }
-        } catch (error) {
-            console.error("Error adding post:", error);
+        // If post.id exists, update the post; otherwise, create a new post
+        if (post.id) {
+            postResponse = await makeApiRequest(`/api/posts/${post.id}`, 'PUT', updatedPost);
+        } else {
+            postResponse = await makeApiRequest('/api/posts', 'POST', updatedPost);
+            setPost({ id: '', title: '', content: '', featured: false });
+            setEditorState(EditorState.createEmpty());
+        }
+
+        if (postResponse.success) {
+            setStatus(postResponse.message);
+        } else {
             setStatus("Failed to post. Please try again.");
         }
     }
@@ -102,7 +116,7 @@ export default function PostForm({ initialPost }: { initialPost?: Post }) {
                     />
                 </div>
                 <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700">
                         Post Excerpt
                     </label>
                     <input

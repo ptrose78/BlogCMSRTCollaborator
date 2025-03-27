@@ -1,14 +1,7 @@
 "use server";
 
-import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
-
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("Missing Supabase environment variables");
-}
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+import { supabase } from '@/app/lib/supabaseClient';
 
 export async function fetchPosts() {
     try {
@@ -32,14 +25,39 @@ export async function fetchPostById(id) {
     }
 }
 
-export async function createPost(post) {
+export async function createPost(post, userId) {
     try {
         if (!post.title) {
             throw new Error("Post title and content are required.");
-        }
+        }      
+        
+        // Remove empty `id` to let Supabase generate it automatically
+        const { id, ...postWithoutId } = post;
 
-        const { error } = await supabase.from('posts').insert([post]);
-        if (error) throw error;
+        console.log('postWithoutId', postWithoutId)
+
+        // Insert post into 'posts' table
+        const { data: newPost, error: postError } = await supabase
+            .from("posts")
+            .insert([{ ...postWithoutId }])
+            .select()
+            .single();
+
+           console.log('postError', postError) 
+        if (postError) throw postError;
+
+        // Insert the user as the 'owner' in the 'post_collaborators' table
+        const { error: collaboratorError } = await supabase
+            .from("post_collaborators")
+            .insert([
+                {
+                    post_id: newPost.id, // Use the newly generated UUID
+                    user_id: userId,
+                    role: "owner",
+                },
+            ]);
+
+        if (collaboratorError) throw collaboratorError;
 
         revalidatePath("/admin/blog");
         return { success: true, message: "Post submitted successfully." };
@@ -48,6 +66,7 @@ export async function createPost(post) {
         throw new Error("Failed to add the post.");
     }
 }
+
 
 export async function updatePost(id, post) {
     try {
@@ -77,6 +96,7 @@ export async function deletePost(post) {
 
 export async function fetchUserById(username) {
     try {
+        console.log('username data.ts', username)
         const { data, error } = await supabase.from('users').select('*').eq('username', username).single();
         if (error) throw error;
         return data;
