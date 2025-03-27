@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import {
     EditorState,
@@ -9,6 +11,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
 import "draft-js/dist/Draft.css"; // Import Draft.js styles
+import { createPost, updatePost } from '@/app/lib/data';
 
 // Dynamically load the Editor component
 const Editor = dynamic(() => import('draft-js').then((mod) => mod.Editor), {
@@ -84,9 +87,9 @@ export default function PostForm({ initialPost }: { initialPost?: Post }) {
 
         // If post.id exists, update the post; otherwise, create a new post
         if (post.id) {
-            postResponse = await makeApiRequest(`/api/posts/${post.id}`, 'PUT', updatedPost);
+            postResponse = await updatePost(updatedPost, post.id);
         } else {
-            postResponse = await makeApiRequest('/api/posts', 'POST', updatedPost);
+            postResponse = await createPost(updatedPost, post.id);
             setPost({ id: '', title: '', content: '', featured: false });
             setEditorState(EditorState.createEmpty());
         }

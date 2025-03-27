@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { supabase } from '@/app/lib/supabaseClient';
+import { supabaseServer } from '@/app/lib/supabaseServer';
 
 export async function fetchPosts() {
     try {
+        const supabase = await supabaseServer();
         const { data, error } = await supabase.from('posts').select('*');
         if (error) throw error;
         return data;
@@ -16,6 +17,8 @@ export async function fetchPosts() {
 
 export async function fetchPostById(id) {
     try {
+        const supabase = await supabaseServer();
+        console.log('id', id)
         const { data, error } = await supabase.from('posts').select('*').eq('id', id).single();
         if (error) throw error;
         return data;
@@ -25,8 +28,9 @@ export async function fetchPostById(id) {
     }
 }
 
-export async function createPost(post, userId) {
+export async function createPost(post) {
     try {
+        const supabase = await supabaseServer();
         if (!post.title) {
             throw new Error("Post title and content are required.");
         }      
@@ -39,7 +43,7 @@ export async function createPost(post, userId) {
         // Insert post into 'posts' table
         const { data: newPost, error: postError } = await supabase
             .from("posts")
-            .insert([{ ...postWithoutId }])
+            .insert([ postWithoutId ])
             .select()
             .single();
 
@@ -47,17 +51,17 @@ export async function createPost(post, userId) {
         if (postError) throw postError;
 
         // Insert the user as the 'owner' in the 'post_collaborators' table
-        const { error: collaboratorError } = await supabase
-            .from("post_collaborators")
-            .insert([
-                {
-                    post_id: newPost.id, // Use the newly generated UUID
-                    user_id: userId,
-                    role: "owner",
-                },
-            ]);
+        // const { error: collaboratorError } = await supabase
+        //     .from("post_collaborators")
+        //     .insert([
+        //         {
+        //             post_id: newPost.id, // Use the newly generated UUID
+        //             user_id: userId,
+        //             role: "owner",
+        //         },
+        //     ]);
 
-        if (collaboratorError) throw collaboratorError;
+        // if (collaboratorError) throw collaboratorError;
 
         revalidatePath("/admin/blog");
         return { success: true, message: "Post submitted successfully." };
@@ -68,11 +72,12 @@ export async function createPost(post, userId) {
 }
 
 
-export async function updatePost(id, post) {
+export async function updatePost(post, id) {
     try {
+        const supabase = await supabaseServer();
         const { error } = await supabase.from('posts').update(post).eq('id', id);
         if (error) throw error;
-
+       
         revalidatePath("/admin/blog");
         return { success: true, message: "Post updated successfully." };
     } catch (error) {
@@ -83,6 +88,7 @@ export async function updatePost(id, post) {
 
 export async function deletePost(post) {
     try {
+        const supabase = await supabaseServer();
         const { error } = await supabase.from('posts').delete().eq('id', post.id);
         if (error) throw error;
 
@@ -96,7 +102,7 @@ export async function deletePost(post) {
 
 export async function fetchUserById(username) {
     try {
-        console.log('username data.ts', username)
+        const supabase = await supabaseServer();
         const { data, error } = await supabase.from('users').select('*').eq('username', username).single();
         if (error) throw error;
         return data;
