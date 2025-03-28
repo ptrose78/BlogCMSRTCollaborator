@@ -34,7 +34,9 @@ export async function createPost(post) {
         if (!post.title) {
             throw new Error("Post title and content are required.");
         }      
-        
+
+        const { data } = await supabase.auth.getUser();
+        console.log('user', data.user?.email)
         // Remove empty `id` to let Supabase generate it automatically
         const { id, ...postWithoutId } = post;
 
@@ -43,11 +45,11 @@ export async function createPost(post) {
         // Insert post into 'posts' table
         const { data: newPost, error: postError } = await supabase
             .from("posts")
-            .insert([ postWithoutId ])
+            .insert([{ ...postWithoutId, owner_email: data.user?.email }])
             .select()
             .single();
 
-           console.log('postError', postError) 
+        console.log('postError', postError)
         if (postError) throw postError;
 
         // Insert the user as the 'owner' in the 'post_collaborators' table
